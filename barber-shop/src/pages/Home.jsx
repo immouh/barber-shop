@@ -335,12 +335,7 @@ function Home() {
                 {price.note ? (
                   <p className="price-note">{price.note}</p>
                 ) : null}
-                <a
-                  className="btn ghost"
-                  href="https://www.planity.com/ha-coiffure-33000-bordeaux/reservation"
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <a className="btn ghost" href="#contact">
                   Choisir
                 </a>
               </article>
@@ -522,6 +517,16 @@ function Home() {
             rel="noreferrer"
           >
             Instagram
+          </a>
+        </p>
+        <p>
+          by{" "}
+          <a
+            href="https://www.linkedin.com/in/said-ait-issad-ab247732b/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            AIT-ISSAD
           </a>
         </p>
       </footer>
