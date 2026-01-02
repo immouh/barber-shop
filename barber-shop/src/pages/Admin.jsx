@@ -56,6 +56,7 @@ function Admin() {
   const barberName = useMemo(() => {
     if (!user?.email) return ""
     const email = user.email.toLowerCase()
+    if (email === "alahelli50@gmail.com") return "ALAA"
     if (email.includes("alaa")) return "ALAA"
     if (email.includes("nadji")) return "NADJI"
     return ""

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
-import { addDoc, collection, onSnapshot, query, where } from "firebase/firestore"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
+import emailjs from "@emailjs/browser"
+import { addDoc, collection } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import "../App.css"
 import logo from "../assets/logo.jpeg"
@@ -103,6 +104,10 @@ const buildSlots = (startTime, endTime, stepMinutes) => {
 }
 
 function Home() {
+  const emailServiceId = import.meta.env.VITE_EMAILJS_SERVICE_ID
+  const emailTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID
+  const emailPublicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+
   const [bookingData, setBookingData] = useState({
     date: new Date().toISOString().slice(0, 10),
     time: "",
@@ -111,27 +116,10 @@ function Home() {
     service: "",
     barber: "ALAA",
   })
-  const [takenSlots, setTakenSlots] = useState([])
   const [bookingError, setBookingError] = useState("")
   const [bookingSuccess, setBookingSuccess] = useState("")
 
   const timeSlots = useMemo(() => buildSlots("09:30", "19:30", 30), [])
-
-  useEffect(() => {
-    if (!bookingData.date || !bookingData.barber) return
-    const appointmentsQuery = query(
-      collection(db, "appointments"),
-      where("date", "==", bookingData.date),
-      where("barber", "==", bookingData.barber)
-    )
-    const unsubscribe = onSnapshot(appointmentsQuery, (snapshot) => {
-      const times = snapshot.docs
-        .map((doc) => doc.data().time)
-        .filter(Boolean)
-      setTakenSlots(times)
-    })
-    return () => unsubscribe()
-  }, [bookingData.date, bookingData.barber])
 
   const handleClientBooking = async (event) => {
     event.preventDefault()
@@ -143,17 +131,32 @@ function Home() {
       return
     }
 
-    if (takenSlots.includes(bookingData.time)) {
-      setBookingError("Ce creneau est deja reserve.")
+    if (!emailServiceId || !emailTemplateId || !emailPublicKey) {
+      setBookingError("Configuration email manquante.")
       return
     }
 
     try {
+      await emailjs.send(
+        emailServiceId,
+        emailTemplateId,
+        {
+          name: bookingData.name,
+          phone: bookingData.phone,
+          service: bookingData.service,
+          date: bookingData.date,
+          time: bookingData.time,
+          barber: bookingData.barber,
+          to_email: "Alahelli50@gmail.com",
+          to_name: "H&A Coiffure",
+        },
+        emailPublicKey
+      )
       await addDoc(collection(db, "appointments"), {
         ...bookingData,
         source: "client",
       })
-      setBookingSuccess("Votre rendez-vous est enregistre.")
+      setBookingSuccess("Votre rendez-vous a ete envoye.")
       setBookingData((prev) => ({
         ...prev,
         time: "",
@@ -162,7 +165,7 @@ function Home() {
         service: "",
       }))
     } catch (error) {
-      setBookingError("Erreur lors de la reservation.")
+      setBookingError(error?.text || "Erreur lors de l'envoi.")
     }
   }
 
@@ -170,10 +173,10 @@ function Home() {
     <div className="page" style={{ "--page-bg": `url(${salon1})` }}>
       <header className="nav">
         <div className="brand">
-          <img className="brand-logo" src={logo} alt="H & A Coiffeur" />
+          <img className="brand-logo" src={logo} alt="H & A Coiffure" />
           <div>
             <p className="brand-name">H &amp; A</p>
-            <p className="brand-subtitle">Coiffeur</p>
+            <p className="brand-subtitle">Coiffure</p>
           </div>
         </div>
         <nav className="nav-links">
@@ -472,12 +475,8 @@ function Home() {
                 >
                   <option value="">Choisir un creneau</option>
                   {timeSlots.map((slot) => (
-                    <option
-                      key={slot}
-                      value={slot}
-                      disabled={takenSlots.includes(slot)}
-                    >
-                      {slot} {takenSlots.includes(slot) ? "(pris)" : ""}
+                    <option key={slot} value={slot}>
+                      {slot}
                     </option>
                   ))}
                 </select>
@@ -514,7 +513,7 @@ function Home() {
       </main>
 
       <footer className="footer">
-        <p>H&amp;A Coiffeur</p>
+        <p>H&amp;A Coiffure</p>
         <p>
           Suivre:{" "}
           <a
